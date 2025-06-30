@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Gbhorwood\Cloverlogger;
 
+define('DEFAULT_SEPARATOR', '::');
+define('DEFAULT_FILE', '/tmp/cloverlogger');
+
 /**
  * MIT License
  *
@@ -55,8 +58,8 @@ class Logger
     {
         // extract configuration data. fall back to defaults.
         $config = self::_config();
-        $separator = $config['SEPARATOR'] ?? '::';
-        $file = $config['FILE'] ?? '/tmp/cloverlog';
+        $separator = $config['SEPARATOR'] ?? DEFAULT_SEPARATOR;
+        $file = $config['FILE'] ?? DEFAULT_FILE;
 
         // current date
         $now = date("Y-m-d-H:i:s");
@@ -96,7 +99,7 @@ class Logger
      */
     private static function _config(): array
     {
-        $config = @parse_ini_file(dirname(__DIR__, 2)."cloverlogger.conf");
+        $config = @parse_ini_file(dirname(__DIR__, 4)."/cloverlogger.conf");
         return $config ? $config : [];
     }
 
