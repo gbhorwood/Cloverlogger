@@ -5,13 +5,13 @@ Cloverlogger is a simple file logger for php projects. Cloverlogger is an intern
 ## Installation
 Installation is done via composer:
 
-```
+```bash
 composer require gbhorwood/cloverlogger
 ```
 
 Once installed it is _highly_ recommended to publish the configuration file.
 
-```
+```bash
 /vendor/bin/publish-config.php
 ```
 
@@ -30,12 +30,13 @@ SEPARATOR="::"
 ```
 
 **`FILE`** Sets the file Cloverlogger writes to.
+
 **`SEPARATOR`** Sets the character(s) used to delimit fields in a log line 
 
 ## Usage
 A basic usage of cloverlogger looks like:
 
-```
+```php
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Gbhorwood\Cloverlogger\Logger as clover;
@@ -46,6 +47,7 @@ clover::info("message", "more message");
 There are two things to note here:
 
 **method name**: The method name can be anything: `info`, `debug`, `mySpecialLogMessages`. The method name is stored in log line, allowing you to easily find relevant logs. For instance, if you are logging information on about your email library, you could use the method `emailLibLog()`, then find all the logs for that feature by `grep`ing the logfile for that method name.
+
 **arguments**: The method can take an arbitrary number of messages. Each message will be written in the log line, delimted by the `SEPARATOR` character.
 
 
