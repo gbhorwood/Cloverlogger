@@ -1,0 +1,7 @@
+tags
+vendor
+.env
+.phpunit.result.cache
+tags.lock
+src/.php-cs-fixer.cache
+.php-cs-fixer.cache

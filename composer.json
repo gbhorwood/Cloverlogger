@@ -1,0 +1,31 @@
+{
+    "name": "gbhorwood/cloverlogger",
+    "description": "Logger for Fruitbat/Cloverhitch/Kludgetastic",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Gbhorwood\\Cloverlogger\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "grant horwood",
+            "email": "ghorwood@fruitbat.studio"
+        }
+    ],
+    "require": {
+        "php": "^8.1"
+    },
+    "minimum-stability": "dev",
+    "require-dev": {
+        "phpunit/phpunit": "12.3.x-dev",
+        "phpstan/phpstan": "2.1.x-dev"
+    },
+    "bin": [
+        "bin/publish-config.php"
+    ],
+    "scripts": {
+        "publish-config": "php bin/publish-config.php"
+    }
+}
