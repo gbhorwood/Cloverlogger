@@ -38,7 +38,7 @@ class Logger
      * CallStatic to handle user defined methods. 
      *
      * @param  string $method
-     * @param  array $args
+     * @param  array<string> $args
      * @return void
      */
     public static function __callStatic($method, $args): void
@@ -50,9 +50,9 @@ class Logger
      * Generate log line and write to file.
      *
      * @param  string $method
-     * @param  array $args
+     * @param  array<string> $args
      * @return void
-     * @throws Exception
+     * @throws \Exception
      */
     private static function _doLog($method, $args)
     {
@@ -68,7 +68,7 @@ class Logger
         $caller = self::_callerData();
 
         // build log line
-        $line = $now.$separator.$method.$separator.$caller->file.$separator.$caller->function.$separator.$caller->line.$separator.join($separator, $args).PHP_EOL;
+        $line = $now.$separator.$method.$separator.$caller['file'].$separator.$caller['function'].$separator.$caller['line'].$separator.join($separator, $args).PHP_EOL;
 
         // write to disk
         self::_write($line, $file);
@@ -80,7 +80,7 @@ class Logger
      * @param  string $line
      * @param  string $file
      * @return void
-     * @throws Exception
+     * @throws \Exception
      */
     private static function _write(string $line, string $file)
     {
@@ -107,21 +107,20 @@ class Logger
      * Extract file, function and line that called __callStatic() function
      * from Exception stack trace. Return as object.
      *
-     * @return object
+     * @return array<string,string>
      */
-    private static function _callerData(): object
+    private static function _callerData(): array
     {
         $e = new \Exception();
         $t = $e->getTrace();
-        $file = $t[2]['file'];
-        // if not called from a function, return '-'
-        $function = $t[3]['function'] ?? "-";
-        $line = $t[2]['line'];
+        $file = $t[2]['file'] ?? '-';
+        $function = $t[3]['function'] ?? '-';
+        $line = $t[2]['line'] ?? '-';
 
-        return (object)[
+        return [
             'file' => $file,
             'function' => $function,
-            'line' => $line,
+            'line' => (string)$line,
         ];
     }
 }
