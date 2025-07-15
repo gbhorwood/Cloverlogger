@@ -12,7 +12,7 @@ composer require gbhorwood/cloverlogger
 Once installed it is _highly_ recommended to publish the configuration file.
 
 ```bash
-/vendor/bin/publish-config.php
+/vendor/bin/cloverlogger-publish-config
 ```
 
 ## Configuration
