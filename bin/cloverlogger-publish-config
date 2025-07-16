@@ -6,4 +6,3 @@ echo "" >> ./cloverlogger.conf
 echo "FILE=/tmp/cloverlogger" >> ./cloverlogger.conf
 echo "SEPARATOR=\"::\"" >> ./cloverlogger.conf
 echo "Cloverlogger config file at cloverlogger.conf"
-exit(1)
