@@ -27,6 +27,7 @@
         "bin/clover-tail"
     ],
     "scripts": {
-        "publish-config": "php bin/cloverlogger-publish-config"
+        "publish-config": "php bin/cloverlogger-publish-config",
+        "clover-tail": "php bin/clover-tail"
     }
 }
