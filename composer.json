@@ -23,7 +23,8 @@
         "phpstan/phpstan": "2.1.x-dev"
     },
     "bin": [
-        "bin/cloverlogger-publish-config"
+        "bin/cloverlogger-publish-config",
+        "bin/clover-tail"
     ],
     "scripts": {
         "publish-config": "php bin/cloverlogger-publish-config"

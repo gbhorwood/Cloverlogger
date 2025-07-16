@@ -1,0 +1,220 @@
+#!/usr/bin/env php
+<?php
+
+// duration for usleep
+define('ONE_TENTH_SECOND', 100000);
+
+// number of lines to output on tail
+define('TAIL_LINE_COUNT', 10);
+
+/**
+ * Get file and separator from config 
+ */
+$config = @parse_ini_file(__DIR__.'/../../cloverlogger.conf');
+$file = $config['FILE'] ?? null;
+$separator = $config['SEPARATOR'] ?? null;
+
+/**
+ * Get optionsl methods to filter by
+ */
+$methods = greppableMethods($argv);
+
+handleHelp($methods);
+
+/**
+ * Entry point
+ */
+tailf($file, $separator, $methods);
+
+/**
+ * Returns all command line args as list of methods to grep
+ *
+ * @param  array<string> $argv
+ * @return array<string>
+ */
+function greppableMethods($argv)
+{
+    array_shift($argv);
+    return array_map(fn($a) => trim($a), $argv);
+}
+
+/**
+ * Outputs the help document if any of the arguments parsed into $methods
+ * is -h or --help. Dies on help output.
+ *
+ * @param  array<mixed>
+ * @return void
+ */
+function handleHelp($methods) {
+    if(count(array_intersect(['-h', '--help'], $methods))) {
+        print <<<TEXT
+        Usage: vendor/bin/clover-tail [METHODS]
+        Outputs the tail of the configured clover-logger log file, optionally filtering by
+        the list of methods provided as arguments. Outputs appended data as the file
+        grows.
+
+        Arguments:
+          -h, --help    Print this message
+
+        Examples:
+        vendor/bin/clover-tail myMethod
+        vendor/bin/clover-tail myMethod otherMethod
+        vendor/bin/clover-tail 
+        TEXT;
+        die();
+    }
+}
+
+/**
+ * Opens a file, returns the pointer resource
+ *
+ * @param  string $file Path to file
+ * @return mixed The file pointer resource
+ */
+function open(string $file): mixed {
+    if(!file_exists($file)) {
+        die("File $file does not exist");
+    }
+
+    if(!is_readable($file)) {
+        die("File $file is not readable");
+    }
+
+    $fp = fopen($file, "r");
+    return $fp;
+}
+
+/**
+ * Updates a file pointer $fp to be n bytes from the end of the file
+ * so that outputting to eof prints the last $lineCount lines.
+ *
+ * @param  mixed $fp The file pointer resource
+ * @param  int $lineCount How many lines back from the end of file
+ * @param  string $separator
+ * @param  array<string> $methods
+ * @return mixed The file pointer resource
+ */
+function windToTailStart(mixed $fp, int $lineCount, $separator = null, $methods = []): mixed {
+    fseek($fp, 0, SEEK_END);
+    $position = 0;
+    $lineCounter = 0;
+
+
+    do {
+
+        // got to start of file before getting $lineCount lines
+		if(ftell($fp) == 0) {
+			return $fp;
+		}
+
+        fseek($fp, $position--, SEEK_END);
+        if(fgetc($fp) == PHP_EOL) {
+
+            if(feof($fp)) {
+                return $fp;
+            }
+
+            $bookmark = ftell($fp);
+            $line = fgets($fp);
+            fseek($fp, $bookmark, SEEK_SET);
+
+            if(canPrint($line, $separator, $methods)) {
+                $lineCounter++;
+            }
+        }
+    }
+    while($lineCounter < $lineCount);
+
+    return $fp;
+}
+
+/**
+ * Returns if a line can be counted for output or output, ie if it
+ * contains one of the grepabble methods or if there are no grepabble
+ * methods.
+ *
+ * @param  string $line
+ * @param  string $separator
+ * @param  array<mixed> $methods
+ * @return bool
+ */
+function canPrint(string $line, string $separator, array $methods): bool {
+    $getMethod =fn(string $line, string $separator) => $separator ? explode($separator, $line)[1] ?? null : null;
+
+    if(count($methods) == 0) {
+        return true;
+    }
+    else {
+        if(in_array($getMethod($line, $separator), $methods)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Outputs all optionally-filtered lines of file from the position of the 
+ * file pointer $fp to the end of file.
+ *
+ * @param  mixed $fp The file pointer resource
+ * @param  string $separator
+ * @param  array<mixed> $methods
+ * @return void
+ */
+function output(mixed $fp, $separator = null, $methods = []) {
+    while(!feof($fp)) {
+        $line = fgets($fp);
+        if(canPrint($line, $separator, $methods)) {
+            print $line;
+        }
+    }
+}
+
+/**
+ * Outputs the last $lineCount lines from file $file.
+ *
+ * @param  string $file Path to file
+ * @param  string $separator
+ * @param  array<string> $methods
+ * @param  int $lineCount
+ * @return void
+ */
+function tail(string $file, string $separator, array $methods, int $lineCount) {
+	$fp = open($file);
+    $fp = windToTailStart($fp, $lineCount, $separator, $methods);
+    //output($fp);
+    output($fp, $separator, $methods);
+    fclose($fp);
+}
+
+/**
+ * Outputs the last $lineCount lines from file $file
+ * then waits for the file to update and outputs the 
+ * new lines. ie. `tail -f`
+ *
+ * @param  string $file Path to file
+ * @param  string $separator
+ * @param  array<string> $methods
+ * @param  int $lineCount
+ * @return void
+ */
+function tailf(string $file, string $separator, array $methods, int $lineCount = TAIL_LINE_COUNT) {
+    // output tail content
+    tail($file, $separator, $methods, $lineCount);
+
+    // open file at the end
+    $fp = open($file);
+    fseek($fp, 0, SEEK_END);
+
+    // wait for new file content and output
+    while(true) { /** @phpstan-ignore while.alwaysTrue */
+        $tell = ftell($fp);
+        usleep(ONE_TENTH_SECOND);
+        fseek($fp, 0, SEEK_END);
+        if($tell != ftell($fp)) {
+            fseek($fp, $tell, SEEK_SET);
+            output($fp, $separator, $methods);
+        }
+    }
+}
