@@ -10,21 +10,58 @@ define('TAIL_LINE_COUNT', 10);
 /**
  * Get file and separator from config 
  */
-$config = @parse_ini_file(__DIR__.'/../../cloverlogger.conf');
-$file = $config['FILE'] ?? null;
-$separator = $config['SEPARATOR'] ?? null;
+$config = parseConfig();
+$file = $config['file'] ?? null;
+$separator = $config['separator'] ?? null;
 
 /**
  * Get optionsl methods to filter by
  */
 $methods = greppableMethods($argv);
 
+/**
+ * Display help if -h or --help is a parameter
+ */
 handleHelp($methods);
 
 /**
  * Entry point
  */
 tailf($file, $separator, $methods);
+
+/**
+ * Parse the cloverlogger config file and return array keyed with
+ * 'file' and 'separator'.
+ *
+ * @return array<string,string>
+ */
+function parseConfig(): array {
+	$configPath = __DIR__.'/../../../../cloverlogger.conf';
+    if(!file_exists($configPath)) {
+        die("File cloverlogger.conf does not exist. did you run vendor/bin/cloverlogger-publish-config?");
+    }
+
+    if(!is_readable($configPath)) {
+        die("File cloverlogger.conf is not readable");
+    }
+    
+    $config = @parse_ini_file($configPath);
+    $file = $config['FILE'] ?? null;
+    $separator = $config['SEPARATOR'] ?? null;
+
+    if(!$file) {
+        die("FILE field is not set in cloverlogger.conf");
+    }
+
+    if(!$separator) {
+        die("SEPARATOR field is not set in cloverlogger.conf");
+    }
+
+    return [
+        'file' => $file,
+        'separator' => $separator,
+    ];
+}
 
 /**
  * Returns all command line args as list of methods to grep
@@ -42,7 +79,7 @@ function greppableMethods($argv)
  * Outputs the help document if any of the arguments parsed into $methods
  * is -h or --help. Dies on help output.
  *
- * @param  array<mixed>
+ * @param  array<mixed> $methods
  * @return void
  */
 function handleHelp($methods) {
@@ -99,7 +136,6 @@ function windToTailStart(mixed $fp, int $lineCount, $separator = null, $methods 
     $position = 0;
     $lineCounter = 0;
 
-
     do {
 
         // got to start of file before getting $lineCount lines
@@ -115,11 +151,18 @@ function windToTailStart(mixed $fp, int $lineCount, $separator = null, $methods 
             }
 
             $bookmark = ftell($fp);
+
+            if($bookmark === false) {
+                return $fp;
+            }
+
             $line = fgets($fp);
             fseek($fp, $bookmark, SEEK_SET);
 
-            if(canPrint($line, $separator, $methods)) {
-                $lineCounter++;
+            if($line !== false) {
+                if(canPrint($line, $separator, $methods)) {
+                    $lineCounter++;
+                }
             }
         }
     }
@@ -139,6 +182,13 @@ function windToTailStart(mixed $fp, int $lineCount, $separator = null, $methods 
  * @return bool
  */
 function canPrint(string $line, string $separator, array $methods): bool {
+    /**
+     * Extract the 'method' field from the log line
+     *
+     * @param  string $line
+     * @param  string $separator
+     * @return ?string
+     */
     $getMethod =fn(string $line, string $separator) => $separator ? explode($separator, $line)[1] ?? null : null;
 
     if(count($methods) == 0) {
@@ -165,8 +215,10 @@ function canPrint(string $line, string $separator, array $methods): bool {
 function output(mixed $fp, $separator = null, $methods = []) {
     while(!feof($fp)) {
         $line = fgets($fp);
-        if(canPrint($line, $separator, $methods)) {
-            print $line;
+        if($line !== false) {
+            if(canPrint($line, $separator, $methods)) {
+                print $line;
+            }
         }
     }
 }
@@ -183,7 +235,6 @@ function output(mixed $fp, $separator = null, $methods = []) {
 function tail(string $file, string $separator, array $methods, int $lineCount) {
 	$fp = open($file);
     $fp = windToTailStart($fp, $lineCount, $separator, $methods);
-    //output($fp);
     output($fp, $separator, $methods);
     fclose($fp);
 }
@@ -210,6 +261,11 @@ function tailf(string $file, string $separator, array $methods, int $lineCount =
     // wait for new file content and output
     while(true) { /** @phpstan-ignore while.alwaysTrue */
         $tell = ftell($fp);
+
+        if($tell === false) {
+            break;
+        }
+
         usleep(ONE_TENTH_SECOND);
         fseek($fp, 0, SEEK_END);
         if($tell != ftell($fp)) {
