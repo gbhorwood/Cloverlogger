@@ -74,3 +74,19 @@ will produce a log line that looks like:
 2025-06-30-15:55:25::mySpecialLogMessages::/path/to/my/script.php::myFunction::4::This is a message::Supplementary message
 ```
 
+## Watching logs
+Cloverloger includes the built-in command `clover-tail` to watch logs in real time from the command line. It can be run from your project like so:
+
+```
+$ ./vendor/bin/clover-tail
+```
+
+This will output the last ten lines of your cloverlogger log and then wait. As new lines are added to the log file, `clover-tail` will output them.
+
+Optionally, `clover-tail` can filter by one or more methods:
+
+```
+$ ./vendor/bin/clover-tail myMethod myOtherMethod
+```
+
+Only the log lines written by those methods will be output.
