@@ -8,7 +8,7 @@ define('ONE_TENTH_SECOND', 100000);
 define('TAIL_LINE_COUNT', 10);
 
 /**
- * Get file and separator from config 
+ * Get file and separator from config
  */
 $config = parseConfig();
 $file = $config['file'] ?? null;
@@ -17,7 +17,7 @@ $separator = $config['separator'] ?? null;
 /**
  * Get optionsl methods to filter by
  */
-$methods = greppableMethods($argv);
+$methods = greppableMethods($argv ?? []);
 
 /**
  * Display help if -h or --help is a parameter
@@ -35,25 +35,27 @@ tailf($file, $separator, $methods);
  *
  * @return array<string,string>
  */
-function parseConfig(): array {
-	$configPath = __DIR__.'/../../../../cloverlogger.conf';
-    if(!file_exists($configPath)) {
+function parseConfig(): array
+{
+    $configPath = __DIR__ . '/../../../../cloverlogger.conf';
+
+    if (!file_exists($configPath)) {
         die("File cloverlogger.conf does not exist. did you run vendor/bin/cloverlogger-publish-config?");
     }
 
-    if(!is_readable($configPath)) {
+    if (!is_readable($configPath)) {
         die("File cloverlogger.conf is not readable");
     }
-    
+
     $config = @parse_ini_file($configPath);
     $file = $config['FILE'] ?? null;
     $separator = $config['SEPARATOR'] ?? null;
 
-    if(!$file) {
+    if (!$file) {
         die("FILE field is not set in cloverlogger.conf");
     }
 
-    if(!$separator) {
+    if (!$separator) {
         die("SEPARATOR field is not set in cloverlogger.conf");
     }
 
@@ -82,8 +84,9 @@ function greppableMethods($argv)
  * @param  array<mixed> $methods
  * @return void
  */
-function handleHelp($methods) {
-    if(count(array_intersect(['-h', '--help'], $methods))) {
+function handleHelp($methods)
+{
+    if (count(array_intersect(['-h', '--help'], $methods))) {
         print <<<TEXT
         Usage: vendor/bin/clover-tail [METHODS]
         Outputs the tail of the configured clover-logger log file, optionally filtering by
@@ -98,7 +101,7 @@ function handleHelp($methods) {
         vendor/bin/clover-tail myMethod otherMethod
         vendor/bin/clover-tail 
         TEXT;
-        die();
+        exit(0);
     }
 }
 
@@ -108,12 +111,13 @@ function handleHelp($methods) {
  * @param  string $file Path to file
  * @return mixed The file pointer resource
  */
-function open(string $file): mixed {
-    if(!file_exists($file)) {
+function open(string $file): mixed
+{
+    if (!file_exists($file)) {
         die("File $file does not exist");
     }
 
-    if(!is_readable($file)) {
+    if (!is_readable($file)) {
         die("File $file is not readable");
     }
 
@@ -131,42 +135,40 @@ function open(string $file): mixed {
  * @param  array<string> $methods
  * @return mixed The file pointer resource
  */
-function windToTailStart(mixed $fp, int $lineCount, $separator = null, $methods = []): mixed {
+function windToTailStart(mixed $fp, int $lineCount, $separator = null, $methods = []): mixed
+{
     fseek($fp, 0, SEEK_END);
     $position = 0;
     $lineCounter = 0;
 
     do {
-
         // got to start of file before getting $lineCount lines
-		if(ftell($fp) == 0) {
-			return $fp;
-		}
+        if (ftell($fp) == 0) {
+            return $fp;
+        }
 
         fseek($fp, $position--, SEEK_END);
-        if(fgetc($fp) == PHP_EOL) {
-
-            if(feof($fp)) {
+        if (fgetc($fp) == PHP_EOL) {
+            if (feof($fp)) {
                 return $fp;
             }
 
             $bookmark = ftell($fp);
 
-            if($bookmark === false) {
+            if ($bookmark === false) {
                 return $fp;
             }
 
             $line = fgets($fp);
             fseek($fp, $bookmark, SEEK_SET);
 
-            if($line !== false) {
-                if(canPrint($line, $separator, $methods)) {
+            if ($line !== false) {
+                if (canPrint($line, $separator, $methods)) {
                     $lineCounter++;
                 }
             }
         }
-    }
-    while($lineCounter < $lineCount);
+    } while ($lineCounter < $lineCount);
 
     return $fp;
 }
@@ -181,7 +183,8 @@ function windToTailStart(mixed $fp, int $lineCount, $separator = null, $methods 
  * @param  array<mixed> $methods
  * @return bool
  */
-function canPrint(string $line, string $separator, array $methods): bool {
+function canPrint(string $line, string $separator, array $methods): bool
+{
     /**
      * Extract the 'method' field from the log line
      *
@@ -189,13 +192,12 @@ function canPrint(string $line, string $separator, array $methods): bool {
      * @param  string $separator
      * @return ?string
      */
-    $getMethod =fn(string $line, string $separator) => $separator ? explode($separator, $line)[1] ?? null : null;
+    $getMethod = fn(string $line, string $separator) => $separator ? explode($separator, $line)[1] ?? null : null;
 
-    if(count($methods) == 0) {
+    if (count($methods) == 0) {
         return true;
-    }
-    else {
-        if(in_array($getMethod($line, $separator), $methods)) {
+    } else {
+        if (in_array($getMethod($line, $separator), $methods)) {
             return true;
         }
     }
@@ -204,7 +206,7 @@ function canPrint(string $line, string $separator, array $methods): bool {
 }
 
 /**
- * Outputs all optionally-filtered lines of file from the position of the 
+ * Outputs all optionally-filtered lines of file from the position of the
  * file pointer $fp to the end of file.
  *
  * @param  mixed $fp The file pointer resource
@@ -212,11 +214,12 @@ function canPrint(string $line, string $separator, array $methods): bool {
  * @param  array<mixed> $methods
  * @return void
  */
-function output(mixed $fp, $separator = null, $methods = []) {
-    while(!feof($fp)) {
+function output(mixed $fp, $separator = null, $methods = [])
+{
+    while (!feof($fp)) {
         $line = fgets($fp);
-        if($line !== false) {
-            if(canPrint($line, $separator, $methods)) {
+        if ($line !== false) {
+            if (canPrint($line, $separator, $methods)) {
                 print $line;
             }
         }
@@ -232,8 +235,9 @@ function output(mixed $fp, $separator = null, $methods = []) {
  * @param  int $lineCount
  * @return void
  */
-function tail(string $file, string $separator, array $methods, int $lineCount) {
-	$fp = open($file);
+function tail(string $file, string $separator, array $methods, int $lineCount)
+{
+    $fp = open($file);
     $fp = windToTailStart($fp, $lineCount, $separator, $methods);
     output($fp, $separator, $methods);
     fclose($fp);
@@ -241,7 +245,7 @@ function tail(string $file, string $separator, array $methods, int $lineCount) {
 
 /**
  * Outputs the last $lineCount lines from file $file
- * then waits for the file to update and outputs the 
+ * then waits for the file to update and outputs the
  * new lines. ie. `tail -f`
  *
  * @param  string $file Path to file
@@ -250,7 +254,8 @@ function tail(string $file, string $separator, array $methods, int $lineCount) {
  * @param  int $lineCount
  * @return void
  */
-function tailf(string $file, string $separator, array $methods, int $lineCount = TAIL_LINE_COUNT) {
+function tailf(string $file, string $separator, array $methods, int $lineCount = TAIL_LINE_COUNT)
+{
     // output tail content
     tail($file, $separator, $methods, $lineCount);
 
@@ -259,16 +264,16 @@ function tailf(string $file, string $separator, array $methods, int $lineCount =
     fseek($fp, 0, SEEK_END);
 
     // wait for new file content and output
-    while(true) { /** @phpstan-ignore while.alwaysTrue */
+    while (true) { /** @phpstan-ignore while.alwaysTrue */
         $tell = ftell($fp);
 
-        if($tell === false) {
+        if ($tell === false) {
             break;
         }
 
         usleep(ONE_TENTH_SECOND);
         fseek($fp, 0, SEEK_END);
-        if($tell != ftell($fp)) {
+        if ($tell != ftell($fp)) {
             fseek($fp, $tell, SEEK_SET);
             output($fp, $separator, $methods);
         }

@@ -33,9 +33,8 @@ define('DEFAULT_FILE', '/tmp/cloverlogger');
 
 class Logger
 {
-
     /**
-     * CallStatic to handle user defined methods. 
+     * CallStatic to handle user defined methods.
      *
      * @param  string $method
      * @param  array<string> $args
@@ -68,7 +67,18 @@ class Logger
         $caller = self::_callerData();
 
         // build log line
-        $line = $now.$separator.$method.$separator.$caller['file'].$separator.$caller['function'].$separator.$caller['line'].$separator.join($separator, $args).PHP_EOL;
+        $line = $now .
+            $separator .
+            $method .
+            $separator .
+            $caller['file'] .
+            $separator .
+            $caller['function'] .
+            $separator .
+            $caller['line'] .
+            $separator .
+            join($separator, $args) .
+            PHP_EOL;
 
         // write to disk
         self::_write($line, $file);
@@ -85,7 +95,7 @@ class Logger
     private static function _write(string $line, string $file)
     {
         $fp = @fopen($file, 'a');
-        if(!$fp) {
+        if (!$fp) {
             throw new \Exception("Cloverlogger could not write to file '$file'");
         }
         fwrite($fp, $line);
@@ -99,7 +109,7 @@ class Logger
      */
     private static function _config(): array
     {
-        $config = @parse_ini_file(dirname(__DIR__, 4)."/cloverlogger.conf");
+        $config = @parse_ini_file(dirname(__DIR__, 4) . "/cloverlogger.conf");
         return $config ? $config : [];
     }
 
